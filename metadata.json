@@ -1,0 +1,5 @@
+{
+  "name": "Robot Repair Log",
+  "description": "A professional repair management system for Mammotion robots (Luba, Yuka, etc.), allowing technicians to track RMAs, log replaced parts, and generate AI-powered customer reports.",
+  "requestFramePermissions": []
+}
