@@ -1,32 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Customer, ProductModel, RepairRecord, PartAction, RepairActionType, Part, User } from '../types';
 import { PRODUCT_MODELS, PRODUCT_AREAS } from '../constants';
 import { IconArrowLeft, IconRobot } from './Icons';
-import { generateRepairReport } from '../services/geminiService';
+import { generateRepairReport, generateQuote } from '../services/geminiService';
 
 interface RepairFormProps {
+  initialData?: RepairRecord | null;
   availableParts: Part[];
   currentUser: User;
   onCancel: () => void;
   onSave: (record: RepairRecord) => void;
 }
 
-export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentUser, onCancel, onSave }) => {
+export const RepairForm: React.FC<RepairFormProps> = ({ initialData, availableParts, currentUser, onCancel, onSave }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingMode, setGeneratingMode] = useState<'quote' | 'report'>('report');
   
   // Form State
   const [customer, setCustomer] = useState<Customer>({ name: '', email: '', phone: '' });
   const [productModel, setProductModel] = useState<ProductModel>(ProductModel.Luba2);
   const [productArea, setProductArea] = useState<string>('3000');
-  // Pre-fill prefixes as requested
   const [productName, setProductName] = useState('Luba-');
   const [rmaNumber, setRmaNumber] = useState('RMA-');
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [partsActions, setPartsActions] = useState<PartAction[]>([]);
   const [technicianNotes, setTechnicianNotes] = useState('');
+  const [laborCost, setLaborCost] = useState<number>(100);
   
   // UI State
   const [filterCategory, setFilterCategory] = useState<string>('All');
+
+  // Initialize from initialData if present
+  useEffect(() => {
+    if (initialData) {
+        setCustomer(initialData.customer);
+        setProductModel(initialData.productModel);
+        setProductArea(initialData.productArea);
+        setProductName(initialData.productName || 'Luba-');
+        setRmaNumber(initialData.rmaNumber);
+        setEntryDate(initialData.entryDate);
+        setPartsActions(initialData.partsActions);
+        setTechnicianNotes(initialData.technicianNotes);
+        setLaborCost(initialData.laborCost || 100);
+    }
+  }, [initialData]);
 
   const handlePartToggle = (partId: string) => {
     setPartsActions(prev => {
@@ -34,7 +51,6 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
       if (exists) {
         return prev.filter(p => p.partId !== partId);
       } else {
-        // Default to 'replaced' when first checked
         return [...prev, { partId, action: 'replaced' }];
       }
     });
@@ -46,18 +62,64 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
     );
   };
 
-  // Helper to extract Name from email (e.g. sang@robomate... -> Sang)
   const getTechnicianName = (email: string) => {
     const namePart = email.split('@')[0];
     return namePart.charAt(0).toUpperCase() + namePart.slice(1);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const calculateTotal = () => {
+    const partsTotal = partsActions.reduce((sum, action) => {
+      // Only replaced parts add to the cost in this model
+      if (action.action === 'replaced') {
+          const part = availableParts.find(p => p.id === action.partId);
+          return sum + (part?.price || 0);
+      }
+      return sum;
+    }, 0);
+    return partsTotal + laborCost;
+  };
+
+  const handleGenerateQuote = async () => {
+    if (partsActions.length === 0 && laborCost === 0) {
+        alert("Please select parts or add labor cost to generate a quote.");
+        return;
+    }
+    
+    setIsGenerating(true);
+    setGeneratingMode('quote');
+
+    const record: RepairRecord = {
+        id: initialData ? initialData.id : Date.now().toString(),
+        customer,
+        productModel,
+        productArea,
+        rmaNumber,
+        productName,
+        entryDate,
+        partsActions,
+        technicianNotes,
+        status: 'Quoted',
+        laborCost,
+        technician: initialData?.technician || getTechnicianName(currentUser.email),
+        // Preserve existing AI logs if updating, or overwrite if generating new
+        aiReport: initialData?.aiReport, 
+        aiSms: initialData?.aiSms
+    };
+
+    const quoteText = await generateQuote(record, availableParts, laborCost);
+    record.aiQuote = quoteText;
+    
+    onSave(record);
+    setIsGenerating(false);
+  };
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
+    setGeneratingMode('report');
 
     const newRecord: RepairRecord = {
-      id: Date.now().toString(),
+      id: initialData ? initialData.id : Date.now().toString(),
       customer,
       productModel,
       productArea,
@@ -67,10 +129,11 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
       partsActions,
       technicianNotes,
       status: 'Completed',
-      technician: getTechnicianName(currentUser.email)
+      laborCost,
+      technician: initialData?.technician || getTechnicianName(currentUser.email),
+      aiQuote: initialData?.aiQuote // Preserve quote if it existed
     };
 
-    // Generate AI Report with current parts list
     const aiResponse = await generateRepairReport(newRecord, availableParts);
     newRecord.aiReport = aiResponse.email;
     newRecord.aiSms = aiResponse.sms;
@@ -98,12 +161,11 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
         <div className="bg-orange-600 px-4 sm:px-8 py-4 sm:py-6">
           <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center">
             <IconRobot className="w-6 h-6 sm:w-8 sm:h-8 mr-3 text-orange-100" />
-            New Repair Entry
+            {initialData ? `Continue Repair: ${initialData.rmaNumber}` : 'Repair Entry & Quotation'}
           </h2>
-          <p className="text-orange-100 mt-1 text-sm sm:text-base">AI will auto-generate the customer report.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+        <form onSubmit={handleSubmitReport} className="p-4 sm:p-8 space-y-6 sm:space-y-8">
           
           {/* Section 1: Product & RMA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -168,7 +230,10 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
 
           <div className="border-t border-gray-200 pt-4 sm:pt-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900">Spare Parts</h3>
+                <div className="flex flex-col">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Spare Parts & Costs</h3>
+                    <p className="text-xs text-gray-500">Select parts to calculate quote or repair cost.</p>
+                </div>
                 
                 {/* Category Filter */}
                 <div className="flex flex-wrap gap-2 overflow-x-auto w-full sm:w-auto pb-1">
@@ -199,17 +264,25 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
                     {parts.map(part => {
                       const selectedPart = partsActions.find(p => p.partId === part.id);
                       const isSelected = !!selectedPart;
+                      
+                      // Calculate effective price: 0 if repaired, normal price if replaced or unselected (view only)
+                      const displayPrice = (isSelected && selectedPart.action === 'repaired') 
+                        ? 0 
+                        : (part.price || 0);
 
                       return (
                         <div key={part.id} className={`flex flex-col p-2 sm:p-3 rounded border transition-all ${isSelected ? 'bg-white border-orange-500 ring-1 ring-orange-500 shadow-sm' : 'bg-white border-gray-200 hover:border-orange-300'}`}>
-                          <label className="flex items-start space-x-3 cursor-pointer mb-2">
-                            <input
-                              type="checkbox"
-                              className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
-                              checked={isSelected}
-                              onChange={() => handlePartToggle(part.id)}
-                            />
-                            <span className={`text-sm font-medium ${isSelected ? 'text-orange-900' : 'text-gray-900'}`}>{part.name}</span>
+                          <label className="flex items-start justify-between cursor-pointer mb-2 w-full">
+                            <div className="flex items-center space-x-3">
+                                <input
+                                type="checkbox"
+                                className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                                checked={isSelected}
+                                onChange={() => handlePartToggle(part.id)}
+                                />
+                                <span className={`text-sm font-medium ${isSelected ? 'text-orange-900' : 'text-gray-900'}`}>{part.name}</span>
+                            </div>
+                            <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded ml-2">${displayPrice.toFixed(2)}</span>
                           </label>
                           
                           {/* Action Selector */}
@@ -246,6 +319,26 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
                 </div>
               ))}
             </div>
+            
+            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
+                <div className="flex flex-col sm:flex-row justify-between items-center">
+                    <div className="mb-2 sm:mb-0">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Labor Cost ($)</label>
+                        <input 
+                            type="number" 
+                            min="0"
+                            value={laborCost} 
+                            onChange={e => setLaborCost(Number(e.target.value))}
+                            className="w-32 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2 border" 
+                        />
+                    </div>
+                    <div className="text-right">
+                        <span className="block text-sm text-gray-500">Total Estimate</span>
+                        <span className="block text-2xl font-bold text-orange-600">${calculateTotal().toFixed(2)}</span>
+                    </div>
+                </div>
+            </div>
+
           </div>
 
           <div className="border-t border-gray-200 pt-4 sm:pt-6">
@@ -259,24 +352,34 @@ export const RepairForm: React.FC<RepairFormProps> = ({ availableParts, currentU
              />
           </div>
 
-          <div className="pt-4 flex justify-end items-center space-x-3 sticky bottom-0 bg-white border-t border-gray-100 p-4 -mx-4 sm:static sm:bg-transparent sm:border-0 sm:p-0 sm:mx-0">
-            <button type="button" onClick={onCancel} className="flex-1 sm:flex-none px-4 sm:px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+          <div className="pt-4 flex flex-col sm:flex-row justify-end items-center space-y-3 sm:space-y-0 sm:space-x-3 sticky bottom-0 bg-white border-t border-gray-100 p-4 -mx-4 sm:static sm:bg-transparent sm:border-0 sm:p-0 sm:mx-0">
+            <button type="button" onClick={onCancel} className="w-full sm:w-auto px-4 sm:px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
               Cancel
             </button>
+            
+            <button 
+                type="button"
+                onClick={handleGenerateQuote}
+                disabled={isGenerating}
+                className="w-full sm:w-auto px-4 sm:px-6 py-3 border border-orange-300 shadow-sm text-base font-medium rounded-md text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 flex items-center justify-center"
+            >
+                {isGenerating && generatingMode === 'quote' ? 'Processing...' : 'Generate Quote Only'}
+            </button>
+
             <button 
                 type="submit" 
                 disabled={isGenerating}
-                className={`flex-1 sm:flex-none px-4 sm:px-8 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white ${isGenerating ? 'bg-orange-400' : 'bg-orange-600 hover:bg-orange-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 flex items-center justify-center`}
+                className={`w-full sm:w-auto px-4 sm:px-8 py-3 border border-transparent shadow-sm text-base font-medium rounded-md text-white ${isGenerating ? 'bg-orange-400' : 'bg-orange-600 hover:bg-orange-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 flex items-center justify-center`}
             >
-              {isGenerating ? (
+              {isGenerating && generatingMode === 'report' ? (
                 <>
                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Processing...
+                  Generating...
                 </>
-              ) : 'Complete & Generate'}
+              ) : 'Complete Repair & Report'}
             </button>
           </div>
         </form>

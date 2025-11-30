@@ -17,6 +17,7 @@ export interface Part {
   id: string;
   name: string;
   category: 'Motor' | 'Electronics' | 'Chassis' | 'Cutting' | 'Accessories' | string;
+  price: number;
 }
 
 export type RepairActionType = 'replaced' | 'repaired';
@@ -42,9 +43,11 @@ export interface RepairRecord {
   productName?: string; // Replaces serialNumber, e.g. "Luba-A1B2"
   partsActions: PartAction[]; 
   technicianNotes: string;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Shipped';
+  status: 'Pending' | 'Quoted' | 'Quote Approved' | 'In Progress' | 'Completed' | 'Shipped';
+  laborCost?: number;
   aiReport?: string;
   aiSms?: string;
+  aiQuote?: string;
   technician?: string; // Derived from user email (e.g., "Sang" from sang@...)
 }
 

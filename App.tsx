@@ -7,6 +7,7 @@ import { Login } from './components/Login';
 import { UserManagement } from './components/UserManagement';
 import { RepairRecord, ViewState, Part, ProductModel, User } from './types';
 import { DEFAULT_SPARE_PARTS } from './constants';
+import { utils, read, writeFile } from 'xlsx';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -135,11 +136,27 @@ const App: React.FC = () => {
   // --- Navigation Handlers ---
 
   const handleNewRepair = () => {
+    setSelectedRecord(null); // Clear any selection so form starts fresh
+    setView('new-repair');
+  };
+
+  const handleContinueRepair = (record: RepairRecord) => {
+    setSelectedRecord(record); // Pass existing record data to initialize form
     setView('new-repair');
   };
 
   const handleSaveRecord = (record: RepairRecord) => {
-    setRecords([record, ...records]);
+    // Check if record exists to update it, otherwise add new
+    const existingIndex = records.findIndex(r => r.id === record.id);
+    
+    if (existingIndex >= 0) {
+        const updatedRecords = [...records];
+        updatedRecords[existingIndex] = record;
+        setRecords(updatedRecords);
+    } else {
+        setRecords([record, ...records]);
+    }
+    
     setSelectedRecord(record);
     setView('view-report');
   };
@@ -164,6 +181,88 @@ const App: React.FC = () => {
   const handleCancel = () => {
     setView('dashboard');
     setSelectedRecord(null);
+  };
+
+  // --- Data Sync Handlers ---
+
+  const handleExportRecords = () => {
+    // Flatten data for Excel export ease if needed, or just dump JSON
+    // Here we dump the object, but stringify complex objects for better readability in Excel
+    const exportData = records.map(r => ({
+        ...r,
+        customerName: r.customer.name,
+        customerEmail: r.customer.email,
+        customerPhone: r.customer.phone,
+        // Helper to stringify parts for Excel view
+        partsSummary: r.partsActions.map(p => p.partId + ':' + p.action).join(', '),
+        // Remove complex objects to clean up Excel
+        customer: JSON.stringify(r.customer),
+        partsActions: JSON.stringify(r.partsActions)
+    }));
+
+    const ws = utils.json_to_sheet(exportData);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, "Repair Records");
+    writeFile(wb, `Robomate_Records_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleImportRecords = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = utils.sheet_to_json(worksheet) as any[];
+
+        const importedRecords: RepairRecord[] = jsonData.map(item => {
+            // Try to parse back the JSON strings if they exist, otherwise reconstruction might be needed
+            // This is a basic reconstruction. For full fidelity, we rely on the stringified JSON fields.
+            let customer = { name: item.customerName || '', email: item.customerEmail || '', phone: item.customerPhone || '' };
+            if (item.customer) {
+                try { customer = JSON.parse(item.customer); } catch {}
+            }
+            
+            let partsActions = [];
+            if (item.partsActions) {
+                 try { partsActions = JSON.parse(item.partsActions); } catch {}
+            }
+
+            return {
+                id: String(item.id),
+                rmaNumber: item.rmaNumber,
+                entryDate: item.entryDate,
+                customer: customer,
+                productModel: item.productModel,
+                productArea: String(item.productArea),
+                productName: item.productName,
+                partsActions: partsActions,
+                technicianNotes: item.technicianNotes,
+                status: item.status,
+                aiReport: item.aiReport,
+                aiSms: item.aiSms,
+                technician: item.technician
+            } as RepairRecord;
+        });
+
+        // Merge logic: Add records that don't exist (by ID)
+        const existingIds = new Set(records.map(r => r.id));
+        const newRecords = importedRecords.filter(r => !existingIds.has(r.id));
+        
+        if (newRecords.length > 0) {
+            setRecords([...newRecords, ...records]);
+            alert(`Successfully imported ${newRecords.length} new records.`);
+        } else {
+            alert('No new records found in file (all IDs already exist).');
+        }
+
+      } catch (error) {
+        console.error('Error parsing Excel file:', error);
+        alert('Error parsing file. Please ensure it was exported from this app.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // --- Render ---
@@ -200,16 +299,20 @@ const App: React.FC = () => {
                 <Dashboard 
                     records={records} 
                     currentUser={currentUser}
-                    onNewRepair={handleNewRepair} 
+                    onNewRepair={handleNewRepair}
+                    onContinueRepair={handleContinueRepair}
                     onViewRecord={handleViewRecord} 
                     onManageParts={handleManageParts}
                     onManageUsers={handleManageUsers}
                     onLogout={handleLogout}
+                    onExportRecords={handleExportRecords}
+                    onImportRecords={handleImportRecords}
                 />
             )}
             
             {view === 'new-repair' && (
                 <RepairForm 
+                    initialData={selectedRecord}
                     availableParts={parts}
                     currentUser={currentUser}
                     onCancel={handleCancel} 

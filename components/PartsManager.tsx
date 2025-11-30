@@ -14,12 +14,14 @@ const CATEGORIES: Part['category'][] = ['Motor', 'Electronics', 'Chassis', 'Cutt
 export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts, onBack }) => {
   // New Part State
   const [newName, setNewName] = useState('');
+  const [newPrice, setNewPrice] = useState<string>('');
   const [newCategory, setNewCategory] = useState<Part['category']>('Motor');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit Part State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState<string>('');
   
   // UI State
   const [filterCategory, setFilterCategory] = useState<string>('All');
@@ -31,11 +33,13 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
     const newPart: Part = {
       id: `custom-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: newName.trim(),
-      category: newCategory
+      category: newCategory,
+      price: parseFloat(newPrice) || 0
     };
 
     onUpdateParts([...parts, newPart]);
     setNewName('');
+    setNewPrice('');
   };
 
   const handleDeletePart = (e: React.MouseEvent, id: string) => {
@@ -47,21 +51,24 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
   const startEditing = (part: Part) => {
     setEditingId(part.id);
     setEditName(part.name);
+    setEditPrice(part.price ? part.price.toString() : '0');
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditName('');
+    setEditPrice('');
   };
 
   const saveEditing = (id: string) => {
     if (!editName.trim()) return;
     const updatedParts = parts.map(p => 
-      p.id === id ? { ...p, name: editName.trim() } : p
+      p.id === id ? { ...p, name: editName.trim(), price: parseFloat(editPrice) || 0 } : p
     );
     onUpdateParts(updatedParts);
     setEditingId(null);
     setEditName('');
+    setEditPrice('');
   };
 
   const handleExport = () => {
@@ -91,14 +98,15 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
         const validParts: Part[] = jsonData.map(item => ({
             id: item.id ? String(item.id) : `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: item.name ? String(item.name) : 'Unknown Part',
-            category: (item.category ? String(item.category) : 'Accessories') as Part['category']
+            category: (item.category ? String(item.category) : 'Accessories') as Part['category'],
+            price: item.price ? Number(item.price) : 0
         })).filter(p => p.name !== 'Unknown Part');
 
         if (validParts.length > 0) {
             onUpdateParts(validParts);
             alert(`Successfully imported ${validParts.length} parts from Excel.`);
         } else {
-            alert('No valid parts found. Please ensure columns are: id, name, category');
+            alert('No valid parts found. Please ensure columns are: id, name, category, price');
         }
       } catch (error) {
         console.error('Error parsing Excel file:', error);
@@ -131,7 +139,7 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                 <IconList className="w-6 h-6 sm:w-8 sm:h-8 mr-3 text-orange-400" />
                 Manage Spare Parts
             </h2>
-            <p className="text-gray-400 mt-1 text-sm">Add, remove, or rename parts.</p>
+            <p className="text-gray-400 mt-1 text-sm">Add, remove, or update parts and pricing.</p>
           </div>
           <div className="flex space-x-3 w-full md:w-auto">
             <button 
@@ -163,13 +171,26 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 sm:mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Part</h3>
             <form onSubmit={handleAddPart} className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-grow w-full">
+              <div className="flex-grow w-full md:w-1/2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Rear Bumper Assembly"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2 border"
+                  required
+                />
+              </div>
+              <div className="w-full md:w-1/4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="0.00"
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2 border"
                   required
                 />
@@ -234,6 +255,13 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                                         onChange={(e) => setEditName(e.target.value)}
                                         className="flex-grow rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-1 border"
                                         autoFocus
+                                    />
+                                    <input 
+                                        type="number"
+                                        step="0.01" 
+                                        value={editPrice}
+                                        onChange={(e) => setEditPrice(e.target.value)}
+                                        className="w-20 rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-1 border"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') saveEditing(part.id);
                                             if (e.key === 'Escape') cancelEditing();
@@ -249,7 +277,10 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                             ) : (
                                 // Display Mode
                                 <>
-                                    <span className="text-sm font-medium text-gray-900">{part.name}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-900">{part.name}</span>
+                                        <span className="text-xs text-orange-600 font-semibold">${part.price ? part.price.toFixed(2) : '0.00'}</span>
+                                    </div>
                                     <div className="flex items-center space-x-1">
                                         <button
                                             type="button"

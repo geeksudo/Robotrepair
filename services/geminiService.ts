@@ -3,6 +3,65 @@ import { RepairRecord, Part } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+export const generateQuote = async (
+  record: RepairRecord,
+  partsList: Part[],
+  laborCost: number
+): Promise<string> => {
+    try {
+        // Calculate items
+        // Include both replaced and repaired items in the quote list
+        const items = record.partsActions
+            .map(p => {
+                const part = partsList.find(sp => sp.id === p.partId);
+                const isRepair = p.action === 'repaired';
+                return {
+                    name: `${part?.name || p.partId} ${isRepair ? '(Repair)' : ''}`,
+                    price: isRepair ? 0 : (part?.price || 0)
+                };
+            });
+        
+        const partsTotal = items.reduce((sum, item) => sum + item.price, 0);
+        const totalCost = partsTotal + laborCost;
+
+        const itemListString = items.map(i => `- ${i.name}: $${i.price.toFixed(2)}`).join('\n');
+
+        const prompt = `
+        You are a Senior Service Representative at Robomate. Write a formal Repair Quotation email.
+
+        DETAILS:
+        - Customer: ${record.customer.name}
+        - Product: ${record.productModel} ${record.productArea} (RMA: ${record.rmaNumber})
+        - Proposed Replacements & Repairs:
+        ${itemListString}
+        - Labor Cost: $${laborCost.toFixed(2)}
+        - Total Estimated Cost: $${totalCost.toFixed(2)}
+        - Notes: ${record.technicianNotes}
+
+        OUTPUT REQUIREMENTS:
+        - Format: Plain Text only (No HTML/Markdown).
+        - Structure:
+          - Subject: Service Quotation: [RMA#] [Product]
+          - Dear [Name],
+          - Explain that diagnostics are complete and parts are needed.
+          - List the parts and costs clearly.
+          - State the Grand Total.
+          - Ask for approval to proceed with the repair.
+          - Sign off: Robomate Service Team.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+
+        return response.text || "Error generating quote.";
+    } catch (error) {
+        console.error("Error generating quote:", error);
+        return "Error generating quote. Please try again.";
+    }
+};
+
 export const generateRepairReport = async (
   record: RepairRecord,
   partsList: Part[]
