@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { RepairRecord } from '../types';
-import { IconPlus, IconWrench, IconList } from './Icons';
+import { RepairRecord, User } from '../types';
+import { IconPlus, IconWrench, IconList, IconUser, IconLogOut } from './Icons';
 
 interface DashboardProps {
   records: RepairRecord[];
+  currentUser: User;
   onNewRepair: () => void;
   onViewRecord: (record: RepairRecord) => void;
   onManageParts: () => void;
+  onManageUsers: () => void;
+  onLogout: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ records, onNewRepair, onViewRecord, onManageParts }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ records, currentUser, onNewRepair, onViewRecord, onManageParts, onManageUsers, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredRecords = records.filter(r => 
@@ -20,37 +23,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ records, onNewRepair, onVi
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {/* Header Section - Stacked on Mobile */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Repair Management</h1>
-          <p className="mt-1 text-gray-500">Track and manage Mammotion product repairs.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Repair Log</h1>
+          <p className="mt-1 text-sm text-gray-500">Welcome, <span className="font-semibold text-orange-600">{currentUser.email}</span></p>
         </div>
-        <div className="flex space-x-3">
+        
+        {/* Action Buttons - Scrollable on very small screens */}
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {currentUser.isAdmin && (
+                <button
+                onClick={onManageUsers}
+                className="flex-1 sm:flex-none justify-center inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
+                >
+                <IconUser className="sm:-ml-1 sm:mr-2 h-5 w-5 text-gray-500" />
+                <span className="hidden sm:inline">Users</span>
+                </button>
+            )}
             <button
             onClick={onManageParts}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+            className="flex-1 sm:flex-none justify-center inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
             >
-            <IconList className="-ml-1 mr-2 h-5 w-5 text-gray-500" />
-            Manage Parts
+            <IconList className="sm:-ml-1 sm:mr-2 h-5 w-5 text-gray-500" />
+            <span className="hidden sm:inline">Parts</span>
+            <span className="sm:hidden">Parts</span>
             </button>
             <button
             onClick={onNewRepair}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+            className="flex-grow sm:flex-grow-0 justify-center inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
             >
             <IconPlus className="-ml-1 mr-2 h-5 w-5" />
             New Repair
+            </button>
+            <button
+            onClick={onLogout}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+            title="Log Out"
+            >
+            <IconLogOut className="h-5 w-5" />
             </button>
         </div>
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex gap-4">
-            <div className="relative flex-grow max-w-md">
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="relative w-full">
                 <input 
                     type="text" 
                     placeholder="Search by Name, RMA, or Model..." 
-                    className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500 text-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -58,8 +81,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ records, onNewRepair, onVi
         </div>
         
         {filteredRecords.length === 0 ? (
-          <div className="text-center py-12">
-            <IconWrench className="mx-auto h-12 w-12 text-gray-400" />
+          <div className="text-center py-12 px-4">
+            <IconWrench className="mx-auto h-12 w-12 text-gray-300" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No records found</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating a new repair record.</p>
           </div>
@@ -68,36 +91,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ records, onNewRepair, onVi
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RMA #</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info</th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Technician</th>
+                  <th className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onViewRecord(record)}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  <tr key={record.id} className="hover:bg-orange-50 cursor-pointer" onClick={() => onViewRecord(record)}>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
                         ${record.status === 'Completed' ? 'bg-green-100 text-green-800' : 
                           record.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
                         {record.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.rmaNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="font-medium text-gray-900">{record.customer.name}</div>
-                        <div className="text-gray-400 text-xs">{record.customer.phone}</div>
+                    <td className="px-4 sm:px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{record.rmaNumber}</div>
+                        <div className="text-sm text-gray-500">{record.customer.name}</div>
+                        {/* Mobile only details */}
+                        <div className="md:hidden text-xs text-gray-400 mt-1">
+                            {record.productModel} {record.productArea}
+                        </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="font-medium">{record.productModel} {record.productArea}</span>
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className="font-medium block">{record.productModel} {record.productArea}</span>
                         {record.productName && <div className="text-xs text-gray-400">{record.productName}</div>}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.entryDate}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button className="text-green-600 hover:text-green-900">View</button>
+                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">{record.entryDate}</td>
+                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {record.technician || '-'}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button className="text-orange-600 hover:text-orange-900">View</button>
                     </td>
                   </tr>
                 ))}

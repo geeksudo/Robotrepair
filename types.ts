@@ -26,6 +26,12 @@ export interface PartAction {
   action: RepairActionType;
 }
 
+export interface User {
+  email: string;
+  password: string; // In a real app, this would be hashed
+  isAdmin: boolean;
+}
+
 export interface RepairRecord {
   id: string;
   rmaNumber: string;
@@ -39,6 +45,7 @@ export interface RepairRecord {
   status: 'Pending' | 'In Progress' | 'Completed' | 'Shipped';
   aiReport?: string;
   aiSms?: string;
+  technician?: string; // Derived from user email (e.g., "Sang" from sang@...)
 }
 
-export type ViewState = 'dashboard' | 'new-repair' | 'view-report';
+export type ViewState = 'dashboard' | 'new-repair' | 'view-report' | 'manage-parts' | 'user-management';

@@ -40,7 +40,6 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
 
   const handleDeletePart = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    // Removed window.confirm to ensure the action executes reliably in all environments
     const updatedParts = parts.filter(p => p.id !== id);
     onUpdateParts(updatedParts);
   };
@@ -66,15 +65,10 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
   };
 
   const handleExport = () => {
-    // Convert parts data to a worksheet
     const ws = utils.json_to_sheet(parts);
-    
-    // Create a new workbook and append the worksheet
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, "Spare Parts");
-    
-    // Save file
-    writeFile(wb, `Mammotion_Spare_Parts_${new Date().toISOString().split('T')[0]}.xlsx`);
+    writeFile(wb, `Robomate_Spare_Parts_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleImportClick = () => {
@@ -89,18 +83,11 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        
-        // Read the workbook from array buffer
         const workbook = read(data, { type: 'array' });
-        
-        // Get the first worksheet
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        
-        // Convert sheet to JSON
         const jsonData = utils.sheet_to_json(worksheet) as any[];
         
-        // Map and validate
         const validParts: Part[] = jsonData.map(item => ({
             id: item.id ? String(item.id) : `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             name: item.name ? String(item.name) : 'Unknown Part',
@@ -111,14 +98,12 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
             onUpdateParts(validParts);
             alert(`Successfully imported ${validParts.length} parts from Excel.`);
         } else {
-            alert('No valid parts found in the Excel file. Please ensure columns are: id, name, category');
+            alert('No valid parts found. Please ensure columns are: id, name, category');
         }
       } catch (error) {
         console.error('Error parsing Excel file:', error);
-        alert('Error parsing file. Please ensure it is a valid Excel file (.xlsx or .xls).');
+        alert('Error parsing file. Please ensure it is a valid Excel file.');
       }
-      
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsArrayBuffer(file);
@@ -134,34 +119,34 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
   const filterCategories = ['All', ...Object.keys(partsByCategory)];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <button onClick={onBack} className="mb-6 flex items-center text-gray-500 hover:text-gray-900 transition-colors">
-        <IconArrowLeft className="w-5 h-5 mr-1" /> Back to Dashboard
+    <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
+      <button onClick={onBack} className="mb-4 flex items-center text-gray-500 hover:text-gray-900 transition-colors">
+        <IconArrowLeft className="w-5 h-5 mr-1" /> Back
       </button>
 
       <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-        <div className="bg-gray-800 px-8 py-6 flex flex-col md:flex-row justify-between items-start md:items-center">
+        <div className="bg-gray-800 px-6 py-4 sm:px-8 sm:py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center">
-                <IconList className="w-8 h-8 mr-3 text-gray-300" />
+            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center">
+                <IconList className="w-6 h-6 sm:w-8 sm:h-8 mr-3 text-orange-400" />
                 Manage Spare Parts
             </h2>
-            <p className="text-gray-400 mt-1">Add, remove, or rename parts available for repair technicians.</p>
+            <p className="text-gray-400 mt-1 text-sm">Add, remove, or rename parts.</p>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-3">
+          <div className="flex space-x-3 w-full md:w-auto">
             <button 
                 onClick={handleExport}
-                className="inline-flex items-center px-3 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="flex-1 md:flex-none justify-center inline-flex items-center px-3 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
             >
                 <IconDownload className="h-4 w-4 mr-2" />
-                Export Excel
+                Export
             </button>
             <button 
                 onClick={handleImportClick}
-                className="inline-flex items-center px-3 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="flex-1 md:flex-none justify-center inline-flex items-center px-3 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
             >
                 <IconUpload className="h-4 w-4 mr-2" />
-                Import Excel
+                Import
             </button>
             <input 
                 type="file" 
@@ -173,9 +158,9 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {/* Add New Part Form */}
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8">
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 sm:mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Part</h3>
             <form onSubmit={handleAddPart} className="flex flex-col md:flex-row gap-4 items-end">
               <div className="flex-grow w-full">
@@ -185,7 +170,7 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Rear Bumper Assembly"
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2 border"
                   required
                 />
               </div>
@@ -194,14 +179,14 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as Part['category'])}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-2 border"
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-2 border"
                 >
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <button
                 type="submit"
-                className="w-full md:w-auto px-6 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center justify-center"
+                className="w-full md:w-auto px-6 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 flex items-center justify-center"
               >
                 <IconPlus className="w-5 h-5 mr-1" /> Add
               </button>
@@ -227,7 +212,7 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
           </div>
 
           {/* List of Parts */}
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {Object.keys(partsByCategory).length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No parts available.</p>
             ) : (
@@ -238,7 +223,7 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                     <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-100 pb-1">{category}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {categoryParts.map(part => (
-                        <div key={part.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md shadow-sm hover:border-green-300 transition-colors group">
+                        <div key={part.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md shadow-sm hover:border-orange-300 transition-colors group">
                             
                             {editingId === part.id ? (
                                 // Edit Mode
@@ -247,7 +232,7 @@ export const PartsManager: React.FC<PartsManagerProps> = ({ parts, onUpdateParts
                                         type="text" 
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
-                                        className="flex-grow rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm p-1 border"
+                                        className="flex-grow rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm p-1 border"
                                         autoFocus
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') saveEditing(part.id);
