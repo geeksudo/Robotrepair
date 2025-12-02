@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RepairRecord, Part } from '../types';
-import { IconArrowLeft, IconMail, IconCheck, IconSparkles, IconUser } from './Icons';
+import { IconArrowLeft, IconMail, IconCheck, IconSparkles, IconUser, IconCopy } from './Icons';
 
 interface ReportViewProps {
   record: RepairRecord;
@@ -10,6 +10,7 @@ interface ReportViewProps {
 
 export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, onClose }) => {
   const [viewMode, setViewMode] = useState<'email' | 'sms' | 'quote'>('email');
+  const [copied, setCopied] = useState(false);
 
   // If record is only Quoted, default to quote view
   React.useEffect(() => {
@@ -25,6 +26,31 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
 
   const handleSendSMS = () => {
     alert(`Simulating SMS sent to ${record.customer.phone}\n\nContent:\n${record.aiSms}`);
+  };
+
+  const handleCopy = () => {
+    const textToCopy = viewMode === 'quote' ? record.aiQuote : (viewMode === 'sms' ? record.aiSms : record.aiReport);
+    if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Helper to visually render bold text from markdown style **Text** for the preview window
+  const renderFormattedText = (text?: string) => {
+    if (!text) return <span className="text-gray-400 italic">No content generated.</span>;
+    
+    // Split by ** to find bold sections
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    
+    return parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            // Remove stars and wrap in strong
+            return <strong key={index} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+    });
   };
 
   return (
@@ -154,23 +180,34 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
             </div>
 
             <div className="flex-grow bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-6 shadow-inner whitespace-pre-wrap font-sans text-gray-700 leading-relaxed text-sm sm:text-base">
-                {viewMode === 'email' && (record.aiReport || 'No final report generated yet.')}
+                {viewMode === 'email' && renderFormattedText(record.aiReport)}
                 {viewMode === 'sms' && (record.aiSms || 'No SMS content generated.')}
-                {viewMode === 'quote' && (record.aiQuote || 'No quotation generated.')}
+                {viewMode === 'quote' && renderFormattedText(record.aiQuote)}
             </div>
 
             <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button 
+                    onClick={handleCopy}
+                    className={`flex justify-center items-center w-full px-4 py-3 border rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm transition-all ${
+                        copied 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-orange-500'
+                    }`}
+                >
+                    {copied ? <IconCheck className="w-5 h-5 mr-2" /> : <IconCopy className="w-5 h-5 mr-2" />}
+                    {copied ? 'Copied!' : 'Copy to Clipboard'}
+                </button>
                 <button 
                     onClick={handleSendEmail}
                     className="flex justify-center items-center w-full px-4 py-3 bg-blue-600 border border-transparent rounded-md font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
                 >
                     <IconMail className="w-5 h-5 mr-2" />
-                    {viewMode === 'quote' ? 'Send Quote Email' : 'Send Final Report'}
+                    {viewMode === 'quote' ? 'Send Quote' : 'Send Email'}
                 </button>
                  {viewMode === 'sms' && (
                      <button 
                         onClick={handleSendSMS}
-                        className="flex justify-center items-center w-full px-4 py-3 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 shadow-sm"
+                        className="col-span-1 sm:col-span-2 flex justify-center items-center w-full px-4 py-3 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 shadow-sm"
                     >
                         Send SMS
                     </button>

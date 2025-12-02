@@ -39,7 +39,8 @@ export const generateQuote = async (
         - Notes: ${record.technicianNotes}
 
         OUTPUT REQUIREMENTS:
-        - Format: Plain Text only (No HTML/Markdown).
+        - Format: Plain Text only (No HTML).
+        - Use **Bold** for headers (e.g. **Service Quotation**) using Markdown syntax.
         - Structure:
           - Subject: Service Quotation: [RMA#] [Product]
           - Dear [Name],
@@ -103,27 +104,39 @@ export const generateRepairReport = async (
       OUTPUT REQUIREMENTS:
 
       1. EMAIL (JSON key: "emailBody"):
-         - **Format**: STRICTLY PLAIN TEXT. NO HTML tags (e.g. <br>, <b>). NO Markdown formatting (e.g. **bold**, ## Heading).
-         - **Style**: Formal, professional business correspondence.
-         - **Structure** (Use double newlines \\n\\n to separate sections):
-           - Subject: [RMA#] Service Update: [Product Model]
-           -
-           - Dear [Customer Name],
-           - [Opening: Confirm completion of service]
-           - [Service Details: List what was done clearly using plain text lists, e.g. "- Replaced Motor"]
-           - Test Results:
-             • The mower was fully tested, including mapping, charging, mowing, and safety checks.
-             • Customer map has been restored.
-           - Recommendations:
-             • Please clean the bottom of the mower regularly.
-             • Replace the blades when they become blunt.
-             • Clean the tail panel and the charging pins on the charging dock from time to time.
-           - [Shipping Information / Tracking if applicable]
-           - Robomate Service Team
+         - **Critical Formatting Rule**: PLAIN TEXT with Markdown for headers. 
+           - DO NOT use HTML tags (like <br>, <p>, <b>). 
+           - USE **Bold** for Section Headers (e.g. **Test Results**).
+           - Use standard blank lines to separate paragraphs.
+         
+         - **Structure & Mandatory Wording**:
+           Subject: [RMA#] Service Report: [Product Model]
+
+           Dear [Customer Name],
+
+           [Opening: Briefly confirm the repair is complete and successful]
+
+           **Service Details**
+           [List the specific repairs/replacements mentioned in the summary above]
+
+           **Test Results**
+           • The mower was fully tested, including mapping, charging, mowing, and safety checks.
+           • Customer map has been restored.
+
+           **Recommendations**
+           • Please clean the bottom of the mower regularly.
+           • Replace the blades when they become blunt.
+           • Clean the tail panel and the charging pins on the charging dock from time to time.
+
+           If there is any logistics information, we will notify you separately.
+
+           Thanks for your patience, and thank you for choosing Robomate!
+
+           Robomate Service Team
 
       2. SMS (JSON key: "smsBody"):
          - **Strict Limit**: Under 160 characters.
-         - **Content**: concise notification.
+         - **Content**: Concise notification.
          - **Example**: "Robomate Update: Your [Model] (RMA...) is repaired and has passed QC. Please check your email for the service report."
 
       Return strictly valid JSON.

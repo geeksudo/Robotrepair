@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { RepairForm } from './components/RepairForm';
@@ -20,35 +21,134 @@ const App: React.FC = () => {
 
   // Initialize parts from localStorage or default
   const [parts, setParts] = useState<Part[]>(() => {
-    const savedParts = localStorage.getItem('robomate_parts_v1');
+    const savedParts = localStorage.getItem('robomate_parts_v2');
     return savedParts ? JSON.parse(savedParts) : DEFAULT_SPARE_PARTS;
   });
 
   // Load records from local storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('robomate_repairs_v1'); 
+    // UPDATED to v3 to force load new filtered seed data
+    const saved = localStorage.getItem('robomate_repairs_v3'); 
     if (saved) {
       setRecords(JSON.parse(saved));
     } else {
-      // Seed data for demo
+      // FILTERED SEED DATA (Only Quoted and Completed)
       const seed: RepairRecord[] = [
         {
           id: '1001',
-          rmaNumber: 'RMA-2023-0892',
-          productModel: ProductModel.Luba1,
+          rmaNumber: 'RMA-2023-1001',
+          productModel: ProductModel.Luba2,
           productArea: '3000',
-          productName: 'Luba-19AF',
-          customer: { name: 'John Doe', email: 'john@example.com', phone: '555-0123' },
-          entryDate: '2023-10-15',
+          productName: 'Luba-L2-3K-8892',
+          customer: { name: 'Alice Smith', email: 'alice.s@example.com', phone: '021-555-0199' },
+          entryDate: '2023-10-20',
           status: 'Completed',
           partsActions: [
             { partId: 'm-wheel-r', action: 'replaced' },
-            { partId: 'c-bumper', action: 'repaired' }
+            { partId: 'a-bumper', action: 'repaired' }
           ],
-          technicianNotes: 'Right wheel motor seized due to debris, replaced. Front bumper was cracked but repairable with bonding agent.',
-          aiReport: 'Dear John Doe,\n\nWe are pleased to inform you that your Luba 1 3000 (RMA-2023-0892) has been repaired. We replaced the Right Wheel Motor and repaired the Front Bumper. The unit has been fully tested and is ready for return.\n\nRobomate Support',
-          aiSms: 'Robomate Update: Your Luba 1 3000 is ready. Replaced: Wheel Motor. Repaired: Bumper. Tested & functioning perfectly. Check email for details.',
-          technician: 'Jeff'
+          technicianNotes: 'Right wheel motor seized due to debris, replaced. Front bumper was cracked but repairable with bonding agent. Firmware updated to latest version.',
+          aiReport: `Subject: Service Report: Luba 2 3000 (RMA-2023-1001)
+
+Dear Alice Smith,
+
+We are pleased to inform you that the service for your Luba 2 3000 (RMA-2023-1001) has been successfully completed.
+
+**Service Details**
+Replaced Components: Right Front Wheel Motor. Repaired Components: Bumper. 
+
+**Test Results**
+• The mower was fully tested, including mapping, charging, mowing, and safety checks.
+• Customer map has been restored.
+
+**Recommendations**
+• Please clean the bottom of the mower regularly.
+• Replace the blades when they become blunt.
+• Clean the tail panel and the charging pins on the charging dock from time to time.
+
+If there is any logistics information, we will notify you separately.
+
+Thanks for your patience, and thank you for choosing Robomate!
+
+Robomate Service Team`,
+          aiSms: 'Robomate Update: Your Luba 2 (RMA-2023-1001) is repaired and tested. Please check your email for the service report.',
+          technician: 'Jeff',
+          laborCost: 120
+        },
+        {
+          id: '1002',
+          rmaNumber: 'RMA-2023-1002',
+          productModel: ProductModel.Yuka,
+          productArea: 'Standard',
+          productName: 'Yuka-Y1-STD-4421',
+          customer: { name: 'Bob Jones', email: 'bobjones@business.co.nz', phone: '027-123-4567' },
+          entryDate: '2023-10-22',
+          status: 'Quoted',
+          partsActions: [
+             { partId: 'e-battery', action: 'replaced' },
+             { partId: 'cut-disk', action: 'replaced' }
+          ],
+          technicianNotes: 'Battery failing to hold charge. Left cutting disk bent. Quote generated and sent to customer.',
+          aiQuote: `Subject: Service Quotation: RMA-2023-1002 Yuka Standard
+
+Dear Bob Jones,
+
+Following our diagnostic assessment of your Yuka Standard (RMA: RMA-2023-1002), we have identified that the battery and cutting disk require replacement.
+
+**Proposed Replacements & Repairs**
+- Battery: $600.00
+- Left Cutting Disk: $38.00
+
+**Labor Cost**: $100.00
+
+**Total Estimated Cost**: $738.00
+
+Please reply to this email to approve the quotation so we can proceed with the repairs.
+
+Robomate Service Team`,
+          technician: 'Jeff',
+          laborCost: 100
+        },
+        {
+            id: '1005',
+            rmaNumber: 'RMA-2023-1005',
+            productModel: ProductModel.LubaMini,
+            productArea: 'Standard',
+            productName: 'Mini-M1-1234',
+            customer: { name: 'Evan Peters', email: 'evan@example.com', phone: '021-333-4444' },
+            entryDate: '2023-10-25',
+            status: 'Completed',
+            partsActions: [
+                { partId: 'c-tire-fl', action: 'replaced' },
+                { partId: 'c-tire-fr', action: 'replaced' }
+            ],
+            technicianNotes: 'Routine tire replacement request. Done.',
+            aiReport: `Subject: Service Report: Luba Mini (RMA-2023-1005)
+
+Dear Evan Peters,
+
+Your Luba Mini has been serviced and is ready for pickup.
+
+**Service Details**
+Replaced Components: Left Front Wheel Tire, Right Front Wheel Tire.
+
+**Test Results**
+• The mower was fully tested, including mapping, charging, mowing, and safety checks.
+• Customer map has been restored.
+
+**Recommendations**
+• Please clean the bottom of the mower regularly.
+• Replace the blades when they become blunt.
+• Clean the tail panel and the charging pins on the charging dock from time to time.
+
+If there is any logistics information, we will notify you separately.
+
+Thanks for your patience, and thank you for choosing Robomate!
+
+Robomate Service Team`,
+            aiSms: 'Robomate: Your Luba Mini is ready with new tires. See email for report.',
+            technician: 'Sang',
+            laborCost: 80
         }
       ];
       setRecords(seed);
@@ -80,13 +180,13 @@ const App: React.FC = () => {
   // Save records to local storage
   useEffect(() => {
     if (records.length > 0) {
-      localStorage.setItem('robomate_repairs_v1', JSON.stringify(records));
+      localStorage.setItem('robomate_repairs_v3', JSON.stringify(records));
     }
   }, [records]);
 
   // Save parts to local storage
   useEffect(() => {
-    localStorage.setItem('robomate_parts_v1', JSON.stringify(parts));
+    localStorage.setItem('robomate_parts_v2', JSON.stringify(parts));
   }, [parts]);
 
   // User persistence (for new registrations/password changes)
@@ -159,6 +259,19 @@ const App: React.FC = () => {
     
     setSelectedRecord(record);
     setView('view-report');
+  };
+
+  const handleDeleteRecord = (id: string) => {
+      // Ensure only admin can delete
+      if (!currentUser?.isAdmin) return;
+      const updatedRecords = records.filter(r => r.id !== id);
+      setRecords(updatedRecords);
+      // Also update local storage immediately to reflect deletion
+      if (updatedRecords.length === 0) {
+          localStorage.removeItem('robomate_repairs_v3');
+      } else {
+          localStorage.setItem('robomate_repairs_v3', JSON.stringify(updatedRecords));
+      }
   };
 
   const handleViewRecord = (record: RepairRecord) => {
@@ -301,7 +414,8 @@ const App: React.FC = () => {
                     currentUser={currentUser}
                     onNewRepair={handleNewRepair}
                     onContinueRepair={handleContinueRepair}
-                    onViewRecord={handleViewRecord} 
+                    onViewRecord={handleViewRecord}
+                    onDeleteRecord={handleDeleteRecord}
                     onManageParts={handleManageParts}
                     onManageUsers={handleManageUsers}
                     onLogout={handleLogout}
