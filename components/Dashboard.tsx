@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { RepairRecord, User } from '../types';
 import { IconPlus, IconWrench, IconList, IconUser, IconLogOut, IconDownload, IconUpload, IconEdit, IconTrash } from './Icons';
@@ -192,7 +193,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {record.status === 'Quoted' && (
+                        {(record.status === 'Quoted' || record.status === 'In Progress') && (
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onContinueRepair(record); }}
                                 className="text-blue-600 hover:text-blue-900 flex items-center bg-blue-50 px-2 py-1 rounded"

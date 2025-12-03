@@ -27,8 +27,8 @@ const App: React.FC = () => {
 
   // Load records from local storage on mount
   useEffect(() => {
-    // UPDATED to v3 to force load new filtered seed data
-    const saved = localStorage.getItem('robomate_repairs_v3'); 
+    // UPDATED to v10 to force load new filtered seed data with address, new box type, and checklist changes
+    const saved = localStorage.getItem('robomate_repairs_v10'); 
     if (saved) {
       setRecords(JSON.parse(saved));
     } else {
@@ -37,12 +37,15 @@ const App: React.FC = () => {
         {
           id: '1001',
           rmaNumber: 'RMA-2023-1001',
+          ticketNumber: 'TKT-10552',
           productModel: ProductModel.Luba2,
           productArea: '3000',
           productName: 'Luba-L2-3K-8892',
-          customer: { name: 'Alice Smith', email: 'alice.s@example.com', phone: '021-555-0199' },
+          customer: { name: 'Alice Smith', email: 'alice.s@example.com', phone: '021-555-0199', address: '15 Garden Way, Remuera, Auckland' },
+          arrivalDate: '2023-10-18',
           entryDate: '2023-10-20',
           status: 'Completed',
+          faultDescription: 'Robot drives in circles and stops with error. Customer suspects wheel issue.',
           partsActions: [
             { partId: 'm-wheel-r', action: 'replaced' },
             { partId: 'a-bumper', action: 'repaired' }
@@ -73,17 +76,49 @@ Thanks for your patience, and thank you for choosing Robomate!
 Robomate Service Team`,
           aiSms: 'Robomate Update: Your Luba 2 (RMA-2023-1001) is repaired and tested. Please check your email for the service report.',
           technician: 'Jeff',
-          laborCost: 120
+          laborCost: 120,
+          checklist: {
+              preliminaryCheck: true,
+              mapBackup: true,
+              disassemblyRepair: true,
+              postRepairTest: true,
+              mapRestore: true,
+              waitingForCustomer: false,
+              waitingForParts: false,
+              waitingForPartsNotes: '',
+              waitingForFullReplacementApproval: false
+          },
+          intake: {
+              shippingMethod: 'Freight',
+              boxType: 'Original',
+              accessories: {
+                  securityKey: true,
+                  camera: true,
+                  bumper: true,
+                  psu: false,
+                  chargingDock: false,
+                  chargingCable: false,
+                  rtk: true,
+                  rtkPsu: true,
+                  cuttingDisks: false,
+                  cuttingBlades: false,
+                  other: false
+              },
+              accessoriesOther: ''
+          }
         },
         {
           id: '1002',
           rmaNumber: 'RMA-2023-1002',
+          ticketNumber: 'TKT-10601',
           productModel: ProductModel.Yuka,
           productArea: 'Standard',
           productName: 'Yuka-Y1-STD-4421',
-          customer: { name: 'Bob Jones', email: 'bobjones@business.co.nz', phone: '027-123-4567' },
+          customer: { name: 'Bob Jones', email: 'bobjones@business.co.nz', phone: '027-123-4567', address: '42 Industrial Blvd, Penrose, Auckland' },
+          arrivalDate: '2023-10-21',
           entryDate: '2023-10-22',
           status: 'Quoted',
+          faultDescription: 'Unit is dead. Won\'t turn on even after charging for 24 hours. Cutting disk looks bent.',
           partsActions: [
              { partId: 'e-battery', action: 'replaced' },
              { partId: 'cut-disk', action: 'replaced' }
@@ -107,48 +142,36 @@ Please reply to this email to approve the quotation so we can proceed with the r
 
 Robomate Service Team`,
           technician: 'Jeff',
-          laborCost: 100
-        },
-        {
-            id: '1005',
-            rmaNumber: 'RMA-2023-1005',
-            productModel: ProductModel.LubaMini,
-            productArea: 'Standard',
-            productName: 'Mini-M1-1234',
-            customer: { name: 'Evan Peters', email: 'evan@example.com', phone: '021-333-4444' },
-            entryDate: '2023-10-25',
-            status: 'Completed',
-            partsActions: [
-                { partId: 'c-tire-fl', action: 'replaced' },
-                { partId: 'c-tire-fr', action: 'replaced' }
-            ],
-            technicianNotes: 'Routine tire replacement request. Done.',
-            aiReport: `Subject: Service Report: Luba Mini (RMA-2023-1005)
-
-Dear Evan Peters,
-
-Your Luba Mini has been serviced and is ready for pickup.
-
-**Service Details**
-Replaced Components: Left Front Wheel Tire, Right Front Wheel Tire.
-
-**Test Results**
-• The mower was fully tested, including mapping, charging, mowing, and safety checks.
-• Customer map has been restored.
-
-**Recommendations**
-• Please clean the bottom of the mower regularly.
-• Replace the blades when they become blunt.
-• Clean the tail panel and the charging pins on the charging dock from time to time.
-
-If there is any logistics information, we will notify you separately.
-
-Thanks for your patience, and thank you for choosing Robomate!
-
-Robomate Service Team`,
-            aiSms: 'Robomate: Your Luba Mini is ready with new tires. See email for report.',
-            technician: 'Sang',
-            laborCost: 80
+          laborCost: 100,
+          checklist: {
+              preliminaryCheck: true,
+              mapBackup: false,
+              disassemblyRepair: false,
+              postRepairTest: false,
+              mapRestore: false,
+              waitingForCustomer: true,
+              waitingForParts: false,
+              waitingForPartsNotes: '',
+              waitingForFullReplacementApproval: false
+          },
+           intake: {
+              shippingMethod: 'Drop Off',
+              boxType: 'Custom',
+              accessories: {
+                  securityKey: true,
+                  camera: true,
+                  bumper: true,
+                  psu: true,
+                  chargingDock: true,
+                  chargingCable: true,
+                  rtk: false,
+                  rtkPsu: false,
+                  cuttingDisks: true,
+                  cuttingBlades: true,
+                  other: true
+              },
+              accessoriesOther: 'Wrapped in bubble wrap, no box'
+          }
         }
       ];
       setRecords(seed);
@@ -180,7 +203,7 @@ Robomate Service Team`,
   // Save records to local storage
   useEffect(() => {
     if (records.length > 0) {
-      localStorage.setItem('robomate_repairs_v3', JSON.stringify(records));
+      localStorage.setItem('robomate_repairs_v10', JSON.stringify(records));
     }
   }, [records]);
 
@@ -257,8 +280,15 @@ Robomate Service Team`,
         setRecords([record, ...records]);
     }
     
-    setSelectedRecord(record);
-    setView('view-report');
+    // Conditional Navigation based on status
+    if (record.status === 'Quoted' || record.status === 'Completed') {
+        setSelectedRecord(record);
+        setView('view-report');
+    } else {
+        // If simply saving progress (e.g. In Progress), go back to dashboard
+        setSelectedRecord(null);
+        setView('dashboard');
+    }
   };
 
   const handleDeleteRecord = (id: string) => {
@@ -268,9 +298,9 @@ Robomate Service Team`,
       setRecords(updatedRecords);
       // Also update local storage immediately to reflect deletion
       if (updatedRecords.length === 0) {
-          localStorage.removeItem('robomate_repairs_v3');
+          localStorage.removeItem('robomate_repairs_v10');
       } else {
-          localStorage.setItem('robomate_repairs_v3', JSON.stringify(updatedRecords));
+          localStorage.setItem('robomate_repairs_v10', JSON.stringify(updatedRecords));
       }
   };
 
@@ -306,11 +336,14 @@ Robomate Service Team`,
         customerName: r.customer.name,
         customerEmail: r.customer.email,
         customerPhone: r.customer.phone,
+        customerAddress: r.customer.address,
         // Helper to stringify parts for Excel view
         partsSummary: r.partsActions.map(p => p.partId + ':' + p.action).join(', '),
         // Remove complex objects to clean up Excel
         customer: JSON.stringify(r.customer),
-        partsActions: JSON.stringify(r.partsActions)
+        partsActions: JSON.stringify(r.partsActions),
+        checklist: JSON.stringify(r.checklist || {}),
+        intake: JSON.stringify(r.intake || {})
     }));
 
     const ws = utils.json_to_sheet(exportData);
@@ -332,7 +365,7 @@ Robomate Service Team`,
         const importedRecords: RepairRecord[] = jsonData.map(item => {
             // Try to parse back the JSON strings if they exist, otherwise reconstruction might be needed
             // This is a basic reconstruction. For full fidelity, we rely on the stringified JSON fields.
-            let customer = { name: item.customerName || '', email: item.customerEmail || '', phone: item.customerPhone || '' };
+            let customer = { name: item.customerName || '', email: item.customerEmail || '', phone: item.customerPhone || '', address: item.customerAddress || '' };
             if (item.customer) {
                 try { customer = JSON.parse(item.customer); } catch {}
             }
@@ -342,10 +375,23 @@ Robomate Service Team`,
                  try { partsActions = JSON.parse(item.partsActions); } catch {}
             }
 
+            let checklist = {};
+            if (item.checklist) {
+                 try { checklist = JSON.parse(item.checklist); } catch {}
+            }
+            
+            let intake = {};
+            if (item.intake) {
+                try { intake = JSON.parse(item.intake); } catch {}
+            }
+
             return {
                 id: String(item.id),
                 rmaNumber: item.rmaNumber,
                 entryDate: item.entryDate,
+                arrivalDate: item.arrivalDate,
+                ticketNumber: item.ticketNumber,
+                faultDescription: item.faultDescription,
                 customer: customer,
                 productModel: item.productModel,
                 productArea: String(item.productArea),
@@ -355,7 +401,9 @@ Robomate Service Team`,
                 status: item.status,
                 aiReport: item.aiReport,
                 aiSms: item.aiSms,
-                technician: item.technician
+                technician: item.technician,
+                checklist: checklist,
+                intake: intake
             } as RepairRecord;
         });
 

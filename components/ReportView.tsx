@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { RepairRecord, Part } from '../types';
 import { IconArrowLeft, IconMail, IconCheck, IconSparkles, IconUser, IconCopy } from './Icons';
@@ -53,6 +54,22 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
     });
   };
 
+  const getAccessoryLabel = (key: string) => {
+      const map: Record<string, string> = {
+          cuttingDisks: 'Cutting Disks',
+          cuttingBlades: 'Blades',
+          securityKey: 'Security Key',
+          camera: 'Camera',
+          bumper: 'Bumper',
+          psu: 'PSU',
+          chargingDock: 'Charging Dock',
+          chargingCable: 'Charging Extension Cable',
+          rtk: 'RTK',
+          rtkPsu: 'RTK PSU'
+      };
+      return map[key] || key.replace(/([A-Z])/g, ' $1').trim();
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
       <button onClick={onClose} className="mb-4 flex items-center text-gray-500 hover:text-gray-900 transition-colors">
@@ -67,6 +84,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Internal Record</h3>
                <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
                     ${record.status === 'Completed' ? 'bg-green-100 text-green-800' : 
+                      record.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
                       record.status === 'Quoted' ? 'bg-purple-100 text-purple-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {record.status}
                </span>
@@ -77,13 +95,37 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
                  <span className="block text-xs text-gray-500 uppercase">RMA #</span>
                  <span className="block text-lg font-bold text-gray-900">{record.rmaNumber}</span>
                </div>
+               
+               {record.ticketNumber && (
+                <div className="mb-4 md:mb-6">
+                    <span className="block text-xs text-gray-500 uppercase">Ticket #</span>
+                    <span className="block font-medium text-gray-900 text-sm">{record.ticketNumber}</span>
+                </div>
+               )}
 
                <div className="mb-4 md:mb-6">
                  <span className="block text-xs text-gray-500 uppercase">Model</span>
                  <span className="block font-medium text-gray-900 text-sm">{record.productModel} {record.productArea}</span>
                  {record.productName && <span className="block text-xs text-gray-500 break-all">{record.productName}</span>}
                </div>
+               
+               <div className="mb-4 md:mb-6">
+                 <span className="block text-xs text-gray-500 uppercase">Arrival Date</span>
+                 <span className="block font-medium text-gray-900 text-sm">{record.arrivalDate || 'N/A'}</span>
+               </div>
            </div>
+           
+           <div className="mb-4 md:mb-6">
+                 <span className="block text-xs text-gray-500 uppercase">Customer Address</span>
+                 <p className="text-sm text-gray-900 break-words">{record.customer.address || 'N/A'}</p>
+           </div>
+           
+           {record.faultDescription && (
+             <div className="mb-4 md:mb-6 border-b border-gray-200 pb-4">
+                 <span className="block text-xs text-gray-500 uppercase mb-1">Fault Description</span>
+                 <p className="text-xs text-gray-700 bg-white p-2 rounded border border-gray-100">{record.faultDescription}</p>
+             </div>
+           )}
 
             <div className="mb-4 md:mb-6">
                 <span className="block text-xs text-gray-500 uppercase">Technician</span>
@@ -92,6 +134,52 @@ export const ReportView: React.FC<ReportViewProps> = ({ record, availableParts, 
                     <span className="font-medium text-gray-900 text-sm">{record.technician || 'Unknown'}</span>
                 </div>
             </div>
+
+            {/* Intake Inspection Details */}
+            {record.intake && (
+                <div className="mb-4 md:mb-6 border-b border-gray-200 pb-4">
+                    <span className="block text-xs text-gray-500 uppercase mb-2">Intake Inspection</span>
+                    <div className="text-xs text-gray-700 mb-2 grid grid-cols-1 gap-1">
+                        <div><span className="text-gray-500">Shipping:</span> {record.intake.shippingMethod}</div>
+                        <div><span className="text-gray-500">Box:</span> {record.intake.boxType}</div>
+                    </div>
+                    <div className="flex flex-col gap-1 mt-2">
+                         {Object.entries(record.intake.accessories).filter(([k,v]) => v).map(([key]) => (
+                             <div key={key} className="flex items-start">
+                                <span className="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] capitalize mr-1 whitespace-nowrap">
+                                    {getAccessoryLabel(key)}
+                                </span>
+                                {key === 'other' && record.intake?.accessoriesOther && (
+                                    <span className="text-[10px] text-gray-500 italic leading-tight">"{record.intake.accessoriesOther}"</span>
+                                )}
+                             </div>
+                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Checklist Summary */}
+            {record.checklist && (
+                <div className="mb-4 md:mb-6">
+                    <span className="block text-xs text-gray-500 uppercase mb-2">Checklist</span>
+                    <ul className="space-y-1">
+                        {record.checklist.preliminaryCheck && <li className="text-xs text-gray-600 flex items-center"><IconCheck className="w-3 h-3 text-green-500 mr-1"/> Cleaned & Inspected</li>}
+                        {record.checklist.mapBackup && <li className="text-xs text-gray-600 flex items-center"><IconCheck className="w-3 h-3 text-green-500 mr-1"/> Map Backed Up</li>}
+                        {record.checklist.disassemblyRepair && <li className="text-xs text-gray-600 flex items-center"><IconCheck className="w-3 h-3 text-green-500 mr-1"/> Disassembled</li>}
+                        {record.checklist.postRepairTest && <li className="text-xs text-gray-600 flex items-center"><IconCheck className="w-3 h-3 text-green-500 mr-1"/> QC Tested</li>}
+                        {record.checklist.mapRestore && <li className="text-xs text-gray-600 flex items-center"><IconCheck className="w-3 h-3 text-green-500 mr-1"/> Map Restored</li>}
+                        
+                        {record.checklist.waitingForCustomer && <li className="text-xs text-purple-600 font-medium mt-1">⚠ Waiting for Customer</li>}
+                        {record.checklist.waitingForParts && (
+                            <li className="text-xs text-red-600 font-medium mt-1">
+                                ⚠ Waiting for Parts
+                                {record.checklist.waitingForPartsNotes && <span className="block text-[10px] text-gray-500 font-normal italic">Need: {record.checklist.waitingForPartsNotes}</span>}
+                            </li>
+                        )}
+                        {record.checklist.waitingForFullReplacementApproval && <li className="text-xs text-blue-600 font-medium mt-1">⚠ Waiting Full Replace. Approval</li>}
+                    </ul>
+                </div>
+            )}
 
            <div className="mb-4 md:mb-6">
              <span className="block text-xs text-gray-500 uppercase">Parts & Costs</span>

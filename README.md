@@ -1,20 +1,39 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Robomate Service App (Demo v3.0)
 
-# Run and deploy your AI Studio app
+## Overview
+A specialized repair management dashboard for Robomate technicians. The app streamlines the RMA process, inventory usage, and leverages **Google Gemini AI** to write professional customer emails.
 
-This contains everything you need to run your app locally.
+## Core Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1dAttL7riyjVfkay4lnf0zd5ger5bhafo
+### 1. AI Quotation System
+*   **Workflow:** Technician diagnoses unit -> Selects Parts -> Sets Labor Cost.
+*   **Output:** Generates a formal, itemized **Quotation Email** requesting customer approval.
+*   **Logic:** Distinguishes between 'Replaced' (Chargeable) and 'Repaired' ($0 cost) items.
 
-## Run Locally
+### 2. AI Service Reporting
+*   **Workflow:** Technician marks repair as complete.
+*   **Output:** Generates a polished **Service Report Email**.
+*   **Standardization:** Automatically includes mandatory Robomate specific text:
+    *   *Test Results:* "Mower fully tested, mapping restored..."
+    *   *Recommendations:* "Clean bottom, replace blades..."
+    *   *Logistics:* "Shipping info notified separately."
 
-**Prerequisites:**  Node.js
+## Technical Stack
+*   **Frontend:** React 19 (ESM), Tailwind CSS (CDN).
+*   **AI Engine:** Google Gemini API (`@google/genai`).
+*   **Data:** Browser LocalStorage (Demo) / Excel Export & Import (Sync).
 
+## Integration Guide for IT
+To integrate this into the company infrastructure:
+1.  **Database:** Replace the `localStorage` logic in `App.tsx` with a persistent backend (e.g., Firebase Firestore or SQL).
+2.  **Hosting:** Deploy as a static site (Vercel, Netlify, or internal S3 bucket).
+3.  **Security:** Move the Google API Key to a secure backend proxy to prevent exposure.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Files Included
+*   `index.html` - Entry point & styling.
+*   `index.tsx` - React mount.
+*   `App.tsx` - Main logic & State.
+*   `types.ts` - Data models.
+*   `constants.ts` - Spare parts database.
+*   `services/geminiService.ts` - AI Prompt engineering.
+*   `components/` - UI Components.
